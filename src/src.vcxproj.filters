@@ -29,7 +29,7 @@
     <ClInclude Include="config.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="Observer.ixx">
+    <ClInclude Include="Observer.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

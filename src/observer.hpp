@@ -1,27 +1,9 @@
+#define _CRT_SECURE_NO_WARNINGS
 #pragma once
-module;
-import std;
-import <iostream>;
-import <vector>;
-import <string>;
-import <map>;
-import <unordered_map>;
-import <mutex>;
-import <thread>;
-import <semaphore>;
-import <condition_variable>;
-import <chrono>;
-import <memory>;
-import <algorithm>;
-import <queue>;
-import <random>;
-import <atomic>;
 
-export module Observer;
-export enum class SeatType { SILVER, GOLD, PLATINUM };
-export enum class PaymentMethod { CREDIT_CARD, CASH };
-export enum class BookingStatus { PENDING, CONFIRMED, CANCELED };
-export enum class NotificationType { NEW_MOVIE, BOOKING_CONFIRMED, BOOKING_CANCELED };
+#include "pch.h"
+#include "states.h"
+#include "config.h"
 /*
 void NotificationSystem::addObserver(std::shared_ptr<Observer> observer) {
 				this->observerSemaphore.acquire();
@@ -37,7 +19,7 @@ void NotificationSystem::addObserver(std::shared_ptr<Observer> observer) {
 */
 // OBSERVER PATTERN
 
-    export class Observer {
+    class Observer {
     public:
         virtual void update(const Notification& notification) = 0;
         virtual ~Observer() = default;
@@ -46,7 +28,7 @@ void NotificationSystem::addObserver(std::shared_ptr<Observer> observer) {
 
     // BASE CLASS USED FOR TYPE OF OBSERVING TYPE
 
-        export class Notification {
+        class Notification {
         private:
             NotificationType type;
             std::string message;
@@ -67,7 +49,7 @@ void NotificationSystem::addObserver(std::shared_ptr<Observer> observer) {
 
 
 
-        export class NotificationSystem {
+        class NotificationSystem {
         private:
             std::vector<std::shared_ptr<Observer>> observers;
             std::binary_semaphore observerSemaphore{ 1 };

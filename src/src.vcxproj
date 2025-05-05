@@ -109,9 +109,9 @@
       <PreprocessorDefinitions>_DEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
       <LanguageStandard>stdcpplatest</LanguageStandard>
-      <TranslateIncludes>true</TranslateIncludes>
-      <EnableModules>true</EnableModules>
-      <BuildStlModules>true</BuildStlModules>
+      <TranslateIncludes>false</TranslateIncludes>
+      <EnableModules>false</EnableModules>
+      <BuildStlModules>false</BuildStlModules>
       <CompileAs>CompileAsCppModule</CompileAs>
     </ClCompile>
     <Link>
@@ -140,7 +140,7 @@
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="config.h" />
-    <ClInclude Include="Observer.ixx" />
+    <ClInclude Include="Observer.hpp" />
     <ClInclude Include="pch.h" />
     <ClInclude Include="states.h" />
   </ItemGroup>

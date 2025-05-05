@@ -1,4 +1,5 @@
-import Observer;
+#include "Observer.hpp"
+
 int main(){
 
 }	
