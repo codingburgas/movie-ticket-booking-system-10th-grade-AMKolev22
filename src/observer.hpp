@@ -4,19 +4,6 @@
 #include "pch.h"
 #include "states.h"
 #include "config.h"
-/*
-void NotificationSystem::addObserver(std::shared_ptr<Observer> observer) {
-				this->observerSemaphore.acquire();
-				this->observers.push_back(observer);
-				this->observerSemaphore.release();
-			}
-
-			void NotificationSystem::removeObserver(std::shared_ptr<Observer> observer) {
-				this->observerSemaphore.acquire();
-				this->observers.erase(std::remove(this->observers.begin(), this->observers.end(), observer), this->observers.end());
-				this->observerSemaphore.release();
-			}
-*/
 // OBSERVER PATTERN
 
     class Observer {
@@ -55,26 +42,10 @@ void NotificationSystem::addObserver(std::shared_ptr<Observer> observer) {
             std::binary_semaphore observerSemaphore{ 1 };
 
         public:
-            void addObserver(std::shared_ptr<Observer> observer) {
-                this->observerSemaphore.acquire();
-                this->observers.push_back(observer);
-                this->observerSemaphore.release();
-            }
+            void addObserver(std::shared_ptr<Observer> observer);
 
-            void removeObserver(std::shared_ptr<Observer> observer) {
-                this->observerSemaphore.acquire();
-                this->observers.erase(std::remove(this->observers.begin(), this->observers.end(), observer), this->observers.end());
-                this->observerSemaphore.release();
-            }
+            void removeObserver(std::shared_ptr<Observer> observer);
 
 
-            void notify(const Notification& notification) {
-                observerSemaphore.acquire();
-                auto observersCopy = observers;
-                observerSemaphore.release();
-
-                for (const auto& observer : observersCopy) {
-                    observer->update(notification);
-                }
-            }
+            void notify(const Notification& notification);
         };
