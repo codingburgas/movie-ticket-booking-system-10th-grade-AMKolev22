@@ -33,7 +33,7 @@ workspace "movie"
         "./vendor/libpq/lib", 
         "./vendor/openssl/lib",
         "./vendor/soci/lib/debug_libs", 
-        "./vendor/cpr/libs/Debug-libs" 
+        "./vendor/cpr/libs/Debug-libs",
         "./vendor/libcurl"
       }
     else
@@ -41,7 +41,7 @@ workspace "movie"
         "./vendor/libpq/lib", 
         "./vendor/openssl/lib",
         "./vendor/soci/lib", 
-        "./vendor/cpr/libs/Release-libs" 
+        "./vendor/cpr/libs/Release-libs",
         "./vendor/libcurl"
       }
     end

@@ -96,12 +96,21 @@ int main() {
                    fs::create_directory("data/");
                     std::ofstream file("data/session.json");
                     SMTP::sendCode(form.getFieldValue("Email"));
+                    std::cout << SMTP::sendCode(form.getFieldValue("Email")).error();
                     file << data;
 
                 }
             }
-
     }
+           /* else {
+
+                curl_global_init(CURL_GLOBAL_DEFAULT);
+                curl_version_info_data* info = curl_version_info(CURLVERSION_NOW);
+                std::cout << "Supported protocols: " << info->protocols[0] << std::endl;
+                for (int i = 0; info->protocols[i]; i++) {
+                    std::cout << info->protocols[i] << std::endl;
+                }
+            }*/
 
     delete cli;
 }

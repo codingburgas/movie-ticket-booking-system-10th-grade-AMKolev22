@@ -9,12 +9,18 @@
     </Filter>
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="include\cli.hpp">
+      <Filter>include</Filter>
+    </ClInclude>
     <ClInclude Include="include\database.hpp">
       <Filter>include</Filter>
     </ClInclude>
-    <ClInclude Include="include\cli.hpp" />
-    <ClInclude Include="include\menus.hpp" />
-    <ClInclude Include="include\sendEmail.hpp" />
+    <ClInclude Include="include\menus.hpp">
+      <Filter>include</Filter>
+    </ClInclude>
+    <ClInclude Include="include\sendEmail.hpp">
+      <Filter>include</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="src\database.cpp">
