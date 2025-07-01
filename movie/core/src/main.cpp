@@ -102,7 +102,7 @@ int main() {
                 }
             }
     }
-           /* else {
+           else {
 
                 curl_global_init(CURL_GLOBAL_DEFAULT);
                 curl_version_info_data* info = curl_version_info(CURLVERSION_NOW);
@@ -110,7 +110,7 @@ int main() {
                 for (int i = 0; info->protocols[i]; i++) {
                     std::cout << info->protocols[i] << std::endl;
                 }
-            }*/
+            }
 
 
     delete cli;

@@ -23,7 +23,8 @@ workspace "movie"
     "./vendor/libpq/include", 
     "./vendor/openssl/include", 
     "./vendor/soci/include",
-    "./movie/core/include"
+    "./movie/core/include",
+    "./vendor/libcurl/include/curl"
   }
   
   -- Common library directories
@@ -34,7 +35,7 @@ workspace "movie"
         "./vendor/openssl/lib",
         "./vendor/soci/lib/debug_libs", 
         "./vendor/cpr/libs/Debug-libs",
-        "./vendor/libcurl"
+        "./vendor/libcurl/lib"
       }
     else
       libdirs { 
@@ -42,7 +43,7 @@ workspace "movie"
         "./vendor/openssl/lib",
         "./vendor/soci/lib", 
         "./vendor/cpr/libs/Release-libs",
-        "./vendor/libcurl"
+        "./vendor/libcurl/lib"
       }
     end
   end
@@ -50,6 +51,7 @@ workspace "movie"
   -- Common libraries to link
   function setup_links(config)
     links {
+      "libcurl_a",
       "libpq",
       "libssl",
       "libcrypto",
@@ -58,6 +60,7 @@ workspace "movie"
     
     if config == "Debug" then
       links {
+        "libcurl_a",
         "libsoci_core_4_0",
         "libsoci_empty_4_0",
         "libsoci_postgresql_4_0",
@@ -65,6 +68,7 @@ workspace "movie"
       }
     else
       links {
+        "libcurl_a",
         "libsoci_core_4_0",
         "libsoci_empty_4_0",
         "libsoci_postgresql_4_0",
@@ -95,8 +99,9 @@ workspace "movie"
     includedirs(common_includes)
     
     filter "configurations:*"
-      libdirs { "./vendor/libpq/lib", "./vendor/openssl/lib",  "./vendor/libcurl"}
+      libdirs { "./vendor/libpq/lib", "./vendor/openssl/lib",  "./vendor/libcurl/lib", }
       links {
+        "libcurl_a",
         "libpq",
         "libssl",
         "libcrypto",
