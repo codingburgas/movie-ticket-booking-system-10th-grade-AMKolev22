@@ -6,7 +6,7 @@ std::once_flag Eccc::Core::Database::database_flag;
 
 std::future<NoReturn> Eccc::Core::Database::connectToDb() {
 	try {
-		sql.open(soci::postgresql, "dbname=daddy_db user=postgres password=daddy host=localhost port=5432");
+		sql.open(soci::postgresql, "dbname=daddy-db user=postgres password=daddy host=localhost port=5432");
 		return {};
 	}
 	catch (const soci::soci_error& database_error) {
@@ -30,7 +30,7 @@ std::future<NoReturn> Eccc::Core::Database::connectToDb() {
 Eccc::Core::Database::ASYNC_NoReturn Eccc::Core::Database::async_connectToDb() {
 	try {
 
-		sql.open(soci::postgresql, "dbname=main_db user=ecccAdmin password=schoolDb123_ host=eccc-db.postgres.database.azure.com port=5432");
+		sql.open(soci::postgresql, "dbname=daddy-db user=postgres password=daddy host=localhost port=5432");
 		return std::async(std::launch::async, []() -> NoReturn {
 			return {};
 		});

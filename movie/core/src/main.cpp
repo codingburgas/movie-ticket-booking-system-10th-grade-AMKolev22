@@ -44,6 +44,7 @@ std::future<bool> enable() {
 int main() {
     CliMenu* cli = new CliMenu();
     CliForm form;
+    std::string email;
     if (!fs::exists("data/session.json")) {
         #ifdef _WIN32
                 bool enabled = enable().get();
@@ -63,6 +64,7 @@ int main() {
             auto db = dbHandle.value();
             auto connectHandle = db->async_connectToDb();
             auto connectionResult = connectHandle.get();
+            auto sql = db->getSession();
 
             if (!connectionResult) {
                 std::cerr << "Failed to connect to database: " << connectionResult.error() << "\n";
@@ -93,13 +95,45 @@ int main() {
                     data["name"] = form.getFieldValue("Name");
                     data["age"] = form.getFieldValue("Age");
                     data["email"] = form.getFieldValue("Email");
+                    email = form.getFieldValue("Email");
                    fs::create_directory("data/");
                     std::ofstream file("data/session.json");
                     SMTP::sendCode(form.getFieldValue("Email"));
-                    std::cout << SMTP::sendCode(form.getFieldValue("Email")).error();
+                    //SMTP::sendCode(form.getFieldValue("Email"));
                     file << data;
-
                 }
+                form.clearFields();
+                form.addField("Code");
+                if (form.run()) {
+                    std::string enteredCodeStr = form.getFieldValue("Code");
+                    int enteredCode = 0;
+                    try {
+                        enteredCode = std::stoi(enteredCodeStr);
+                    }
+                    catch (...) {
+                        std::cout << "Invalid code format\n";
+                        return 1; 
+                    }
+
+                    try {
+                        int storedCode = 0;
+                        *sql << "SELECT code FROM \"TwoFA\" WHERE \"userEmail\" = :email",
+                            soci::into(storedCode),
+                            soci::use(email); 
+
+                        if (storedCode == enteredCode) {
+                            std::cout << "Code verified successfully!\n";
+                            *sql << "DELETE FROM \"TwoFA\" WHERE \"userEmail\" = :email",
+                                soci::use(email);
+                        }
+                        else
+                            std::cout << "Code does not match.\n";
+                    }
+                    catch (const std::exception& e) {
+                        std::cerr << "DB error: " << e.what() << "\n";
+                    }
+                }
+
             }
     }
            else {
