@@ -1,0 +1,143 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
+// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+
+model City {
+  id       Int      @id @default(autoincrement())
+  name     String
+  cinemas  Cinema[]
+}
+
+model Cinema {
+  id       Int      @id @default(autoincrement())
+  name     String
+  cityId   Int
+  city     City     @relation(fields: [cityId], references: [id])
+  halls    Hall[]
+}
+
+model Hall {
+  id         Int      @id @default(autoincrement())
+  name       String
+  cinemaId   Int
+  cinema     Cinema   @relation(fields: [cinemaId], references: [id])
+  seats      Seat[]
+  shows      Show[]
+}
+
+model Movie {
+  id           Int       @id @default(autoincrement())
+  title        String
+  language     String
+  genre        String
+  releaseDate  DateTime
+  shows        Show[]
+}
+
+model Show {
+  id         Int       @id @default(autoincrement())
+  movieId    Int
+  hallId     Int
+  startTime  DateTime
+  endTime    DateTime
+
+  movie      Movie     @relation(fields: [movieId], references: [id])
+  hall       Hall      @relation(fields: [hallId], references: [id])
+  bookings   Booking[]
+}
+
+model Seat {
+  id       Int       @id @default(autoincrement())
+  row      String
+  number   Int
+  type     SeatType
+  hallId   Int
+  hall     Hall      @relation(fields: [hallId], references: [id])
+  bookings Booking[]
+}
+
+model User {
+  id        Int       @id @default(autoincrement())
+  name      String
+  email     String    @unique
+  isAdmin   Boolean   @default(false)
+  bookings  Booking[]
+  payments  Payment[]
+
+  Notification Notification[]
+} 
+
+model Booking {
+  id        Int       @id @default(autoincrement())
+  userId    Int
+  showId    Int
+  seatId    Int
+  status    BookingStatus @default(CONFIRMED)
+  createdAt DateTime  @default(now())
+
+  user      User      @relation(fields: [userId], references: [id])
+  show      Show      @relation(fields: [showId], references: [id])
+  seat      Seat      @relation(fields: [seatId], references: [id])
+  payment   Payment?
+}
+
+model Payment {
+  id         Int       @id @default(autoincrement())
+  bookingId  Int       @unique
+  method     PaymentMethod
+  amount     Float
+  paidAt     DateTime  @default(now())
+
+  booking    Booking   @relation(fields: [bookingId], references: [id])
+  user       User      @relation(fields: [userId], references: [id])
+  userId     Int
+}
+
+model Notification {
+  id         Int       @id @default(autoincrement())
+  type       NotificationType
+  message    String
+  createdAt  DateTime  @default(now())
+  userId     Int?
+  user       User?     @relation(fields: [userId], references: [id])
+}
+
+model TwoFA{
+  userEmail String
+  code Int @unique
+}
+
+enum SeatType {
+  SILVER
+  GOLD
+  PLATINUM
+}
+
+enum BookingStatus {
+  CONFIRMED
+  CANCELLED
+  PENDING
+}
+
+enum PaymentMethod {
+  CREDIT_CARD
+  CASH
+}
+
+enum NotificationType {
+  NEW_MOVIE
+  BOOKING_MADE
+  BOOKING_CANCELLED
+}
