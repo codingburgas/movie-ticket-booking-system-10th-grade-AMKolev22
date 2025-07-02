@@ -1,5 +1,4 @@
-﻿#include "database.hpp"
-#include <iostream>
+﻿#include <iostream>
 #include <string>
 #include <vector>
 #include <memory>
@@ -7,7 +6,15 @@
 #include <cli.hpp>
 #include <menus.hpp>
 #include <fstream>
+#include <typeinfo>
 #include <filesystem>
+
+#include <models/Booking.h>
+#include <models/Cinema.h>
+#include <models/City.h>
+#include <models/Hall.h>
+#include <models/Show.hpp>
+
 #ifdef _WIN32
     #include <Windows.h>
 #endif
@@ -15,8 +22,11 @@
 #include <../../vendor/nlohmann/json_fwd.hpp>
 #include <sendEmail.hpp>
 using namespace Eccc::Core;
+using Eccc::Core::Database;
 using namespace CliUtils;
 namespace fs = std::filesystem;
+
+
 
 
 
@@ -45,7 +55,8 @@ int main() {
     CliMenu* cli = new CliMenu();
     CliForm form;
     std::string email;
-    if (!fs::exists("data/session.json")) {
+    std::string age;
+    std::string name;
         #ifdef _WIN32
                 bool enabled = enable().get();
         #endif
@@ -64,7 +75,6 @@ int main() {
             auto db = dbHandle.value();
             auto connectHandle = db->async_connectToDb();
             auto connectionResult = connectHandle.get();
-            auto sql = db->getSession();
 
             if (!connectionResult) {
                 std::cerr << "Failed to connect to database: " << connectionResult.error() << "\n";
@@ -74,78 +84,123 @@ int main() {
             std::cout << "Connected to the database\n";
             std::this_thread::sleep_for(std::chrono::milliseconds(1000));
 
-            int choice = cli->display(menus["login"]);
+            if (!fs::exists("data/session.json")) {
+                int choice = cli->display(menus["login"]);
+
+                CliUtils::clearScreen();
+                std::cout << "You selected: " << menus["login"][choice] << "\n";
+
+                if (choice == 0) {
+                    fs::create_directory("data/");
+                    std::ofstream file("data/session.json");
+                    std::cout << "Login!";
+                }
+                else {
+                    std::cout << "Register";
+                    CliUtils::clearScreen();
+                    form.addField("Name");
+                    form.addField("Age");
+                    form.addField("Email");
+                    nlohmann::json data;
+                    if (form.run()) {
+                        data["name"] = form.getFieldValue("Name");
+                        data["age"] = form.getFieldValue("Age");
+                        data["email"] = form.getFieldValue("Email");
+                        email = form.getFieldValue("Email");
+                        name = form.getFieldValue("Name");
+                        age = std::stoi(form.getFieldValue("Age"));
+                        SMTP::sendCode(form.getFieldValue("Email"));
+                    }
+                    form.clearFields();
+                    form.addField("Code");
+                    if (form.run()) {
+                        std::string enteredCodeStr = form.getFieldValue("Code");
+                        int enteredCode = 0;
+                        try {
+                            enteredCode = std::stoi(enteredCodeStr);
+                        }
+                        catch (...) {
+                            std::cout << "Invalid code format\n";
+                            return 1;
+                        }
+
+                        try {
+                            int storedCode = 0;
+                            soci::session* sql = db->getSession();
+                           *sql << "SELECT code FROM \"TwoFA\" WHERE \"userEmail\" = :email",
+                                soci::into(storedCode),
+                                soci::use(email);
+
+                            if (storedCode == enteredCode) {
+                                int isAdmin = 1;
+                                std::cout << "Code verified successfully!\n";
+                                fs::create_directory("data/");
+                                std::ofstream file("data/session.json");
+                                file << data;
+                                *sql << "DELETE FROM \"TwoFA\" WHERE \"userEmail\" = :email",
+                                    soci::use(email);
+
+                                *sql << "INSERT INTO public.\"User\" (\"name\", \"isAdmin\", \"email\") VALUES (:name, :isAdmin, :email)",
+                                    soci::use(name),
+                                    soci::use(1),
+                                    soci::use(email);
+
+                                CliUtils::clearScreen();
+
+                                CliUtils::displayMenu(bool(isAdmin), *sql);
+        
+                            }
+                            else
+                                std::cout << "Code does not match.\n";
+                        }
+                        catch (const std::exception& e) {
+                            std::cerr << "DB error: " << e.what() << "\n";
+                        }
+                    }
+                    CliUtils::clearScreen();
+
+                }
+            }
+
+       else {
+
+        try {
+            auto sql = dbHandle.value()->getSession();
+            int isAdmin = 1;
+            //std::cout << typeid(sql).name();
+            std::cout << email;
+            std::ifstream file("data/session.json");
+            nlohmann::json data;
+            if (file.is_open()) {
+                file >> data;
+                
+            }
+            std::cout << data["email"];
+            std::string name = data["name"];
+
+            std::cout << "NAME: " << name;
+
+            (*sql) << "SELECT \"isAdmin\" FROM public.\"User\" WHERE \"email\" = :email",
+            soci::into(isAdmin),
+            soci::use<std::string>(email);
 
             CliUtils::clearScreen();
-            std::cout << "You selected: " << menus["login"][choice] << "\n";
-
-            if (choice == 0) {
-                fs::create_directory("data/");
-                std::ofstream file("data/session.json");
-                std::cout << "Login!";
-            }
-            else {
-                std::cout << "Register";
-                CliUtils::clearScreen();
-                form.addField("Name");
-                form.addField("Age");
-                form.addField("Email");
-                if (form.run()) {
-                    nlohmann::json data;
-                    data["name"] = form.getFieldValue("Name");
-                    data["age"] = form.getFieldValue("Age");
-                    data["email"] = form.getFieldValue("Email");
-                    email = form.getFieldValue("Email");
-                   fs::create_directory("data/");
-                    std::ofstream file("data/session.json");
-                    SMTP::sendCode(form.getFieldValue("Email"));
-                    //SMTP::sendCode(form.getFieldValue("Email"));
-                    file << data;
-                }
-                form.clearFields();
-                form.addField("Code");
-                if (form.run()) {
-                    std::string enteredCodeStr = form.getFieldValue("Code");
-                    int enteredCode = 0;
-                    try {
-                        enteredCode = std::stoi(enteredCodeStr);
-                    }
-                    catch (...) {
-                        std::cout << "Invalid code format\n";
-                        return 1; 
-                    }
-
-                    try {
-                        int storedCode = 0;
-                        *sql << "SELECT code FROM \"TwoFA\" WHERE \"userEmail\" = :email",
-                            soci::into(storedCode),
-                            soci::use(email); 
-
-                        if (storedCode == enteredCode) {
-                            std::cout << "Code verified successfully!\n";
-                            *sql << "DELETE FROM \"TwoFA\" WHERE \"userEmail\" = :email",
-                                soci::use(email);
-                        }
-                        else
-                            std::cout << "Code does not match.\n";
-                    }
-                    catch (const std::exception& e) {
-                        std::cerr << "DB error: " << e.what() << "\n";
-                    }
-                }
-
-            }
-    }
-           else {
-
-                curl_global_init(CURL_GLOBAL_DEFAULT);
-                curl_version_info_data* info = curl_version_info(CURLVERSION_NOW);
-                std::cout << "Supported protocols: " << info->protocols[0] << std::endl;
-                for (int i = 0; info->protocols[i]; i++) {
-                    std::cout << info->protocols[i] << std::endl;
-                }
+            CliUtils::displayMenu(bool(isAdmin), *sql, name);
+            std::string command;
+            while (true) {
+              std::getline(std::cin, command);
+              std::transform(command.begin(), command.end(), command.begin(), ::tolower);
+              if (command == "help")
+                  CliUtils::displayMenu(bool(isAdmin), *sql, name);
             }
 
+
+            }
+
+            catch (const std::exception& e) {
+                std::cerr << "Error checking admin status: " << e.what() << "\n";
+            }
+        }
 
     delete cli;
 }

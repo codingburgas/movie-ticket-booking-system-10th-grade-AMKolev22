@@ -1,9 +1,16 @@
-#pragma once
+﻿#pragma once
 #include <limits>
 #include <string>
 #include <vector>
 #include <iostream>
 #include <ranges>
+#include <movies.h>
+#include "shows.h"
+#include <database.hpp>
+#include "booking.h"
+#include "admin.h"
+
+#include "browse.h"
 #ifdef _WIN32
 	#include <conio.h>
     #include <windows.h>
@@ -25,6 +32,108 @@ namespace CliUtils {
 #ifdef _WIN32
         return _getch();
 #endif
+    }
+
+    void displayMenu(bool isAdmin, soci::session& sql, std::string name = "") {
+        std::vector<std::string> userCommands = {
+        "Search Movies", "Search Shows", "Book a Ticket", "View Bookings", "Cancel Booking", "Help"
+        };
+        std::vector<std::string> adminCommands = {
+            "Add Movie", "Add Show", " Statistics", "Add Cinema", "Add Halls", "Add Seats", "Add City", "Browse Cinemas", "Cinema Details"
+        };
+
+        std::vector<std::string> allCommands = userCommands;
+        if (isAdmin) {
+            allCommands.insert(allCommands.end(), adminCommands.begin(), adminCommands.end());
+        }
+
+        const int columns = 3;
+        int selected = 0;
+        int total = allCommands.size();
+
+        while (true) {
+            clearScreen();
+            std::cout << "=== Movie Ticket Booking System ===\n";
+            std::cout << "Welcome back, " << name << "\n";
+            std::cout << "Use arrow keys to navigate. Press Enter to select. Q to quit.\n\n";
+
+            for (int i = 0; i < total; ++i) {
+                if (i % columns == 0) std::cout << "\n";
+                if (i == selected)
+                    std::cout << " > [" << allCommands[i] << "] ";
+                else
+                    std::cout << "   " << allCommands[i] << "   ";
+            }
+
+            int key = _getch();
+            if (key == 224) {
+                key = _getch();
+                if (key == 72 && selected - columns >= 0) selected -= columns;       
+                else if (key == 80 && selected + columns < total) selected += columns; 
+                else if (key == 75 && selected > 0) selected--;                        
+                else if (key == 77 && selected < total - 1) selected++;                
+            }
+            else if (key == '\r') {
+                system("cls");
+                std::cout << "You selected: " << allCommands[selected] << "\n";
+                
+                if (selected == 0 ) {
+                    searchMovies(sql);
+                }
+                else if (selected == 1) {
+                    viewShows(sql);
+                }
+                else if (selected == 2){
+                    bookTickets(sql);
+                }
+                else if (selected == 3) {
+                    viewBookings(sql);
+                }
+                else if (selected == 6) {
+                    addMovie(sql, isAdmin = true);
+                }
+                else if (selected == 7) {
+                    addShow(sql, isAdmin = true);
+                }
+                else if (selected == 8) {
+                    viewStatistics(sql, isAdmin = true);
+                }
+                else if (selected == 9){
+                    addCinema(sql, isAdmin = true);
+                }
+                else if (selected == 10) {
+                    int cinemaId;
+                    std::cout << "Please enter cinema id: ";
+                    std::cin >> cinemaId;
+                    addHallsToCinema(sql, cinemaId, isAdmin = true);
+
+                }
+                else if (selected == 11) {
+                    std::cout << "Please enter hall id, rows and seats per row!";
+                    int hallId, rows, perRow;
+                    std::cin >> hallId >> rows >> perRow;
+                    addSeatsToHall(sql,hallId, rows, perRow);
+                }
+                else if (selected == 12) {
+                    addCity(sql, isAdmin = true);
+                }
+                else if (selected == 13) {
+                    browseCinemas(sql);
+                }
+                else if (selected == 14) {
+                    std::cout << "Enter cinema id";
+                    int id;
+                    std::cin >> id;
+                    viewCinemaDetails(sql, id);
+                }
+
+                
+            }
+            else if (key == 'q' || key == 'Q') {
+                std::cout << "\n Exiting menu...\n";
+                break;
+            }
+        }
     }
 
 }

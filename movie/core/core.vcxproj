@@ -94,12 +94,23 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClInclude Include="include\admin.h" />
+    <ClInclude Include="include\booking.h" />
+    <ClInclude Include="include\browse.h" />
     <ClInclude Include="include\cli.hpp" />
     <ClInclude Include="include\database.hpp" />
     <ClInclude Include="include\menus.hpp" />
+    <ClInclude Include="include\movies.h" />
     <ClInclude Include="include\sendEmail.hpp" />
+    <ClInclude Include="include\shows.h" />
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="include\models\Booking.h" />
+    <ClCompile Include="include\models\Cinema.h" />
+    <ClCompile Include="include\models\City.h" />
+    <ClCompile Include="include\models\Hall.h" />
+    <ClCompile Include="include\models\Movie.h" />
+    <ClCompile Include="include\models\Show.hpp" />
     <ClCompile Include="src\database.cpp" />
     <ClCompile Include="src\main.cpp" />
   </ItemGroup>

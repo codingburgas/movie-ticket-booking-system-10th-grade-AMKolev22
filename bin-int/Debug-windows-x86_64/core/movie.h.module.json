@@ -1,0 +1,22 @@
+{
+    "version": 1,
+    "revision": 0,
+    "rules": [
+        {
+            "primary-output": "..\\..\\bin-int\\Debug-windows-x86_64\\core\\Movie.h.obj",
+            "outputs": [
+                "C:\\Users\\polek\\Downloads\\praktika3\\movie-ticket-booking-system-10th-grade-AMKolev22\\bin-int\\Debug-windows-x86_64\\core\\vc143.pdb",
+                "..\\..\\bin-int\\Debug-windows-x86_64\\core\\",
+                "C:\\Users\\polek\\Downloads\\praktika3\\movie-ticket-booking-system-10th-grade-AMKolev22\\bin-int\\Debug-windows-x86_64\\core\\Movie.h.ifc"
+            ],
+            "provides": [
+                {
+                    "logical-name": "include\\models\\Movie.h",
+                    "source-path": "c:\\users\\polek\\downloads\\praktika3\\movie-ticket-booking-system-10th-grade-amkolev22\\movie\\core\\include\\models\\movie.h",
+                    "lookup-method": "absolute"
+                }
+            ],
+            "requires": []
+        }
+    ]
+}
