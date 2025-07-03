@@ -6,7 +6,7 @@
 #include <../../vendor/soci/include/soci/soci.h>
 void addSeatsToHall(soci::session& sql, int hallId, int rows, int seatsPerRow);
 void addHallsToCinema(soci::session& sql, bool isAdmin, int cinemaId);
-
+void addShowsForMovie(soci::session& sql, int movieId, const std::string& movieTitle);
 void addMovie(soci::session& sql, bool isAdmin) {
     if (!isAdmin) {
         std::cout << "Access denied. Admin privileges required.\n";
@@ -14,7 +14,6 @@ void addMovie(soci::session& sql, bool isAdmin) {
     }
 
     std::string title, language, genre, releaseDate;
-
     std::cout << "\n=== Add New Movie ===\n";
     std::cin.ignore();
     std::cout << "Enter movie title: ";
@@ -39,12 +38,148 @@ void addMovie(soci::session& sql, bool isAdmin) {
             soci::use(message);
 
         std::cout << "\nMovie added successfully! Movie ID: " << movieId << "\n";
+
+        // Ask if user wants to add shows for this movie
+        std::cout << "\nWould you like to add shows for this movie? (y/n): ";
+        char addShows;
+        std::cin >> addShows;
+
+        if (addShows == 'y' || addShows == 'Y') {
+            std::cin.ignore(); // Clear input buffer
+            addShowsForMovie(sql, movieId, title);
+        }
     }
     catch (const std::exception& e) {
         std::cerr << "Error adding movie: " << e.what() << "\n";
     }
+
+    std::cout << "\nPress Enter to continue...";
+    std::cin.ignore();
+    std::cin.get();
 }
 
+void addShowsForMovie(soci::session& sql, int movieId, const std::string& movieTitle) {
+    std::cout << "\n=== Add Shows for Movie: " << movieTitle << " ===\n";
+
+    bool addMoreShows = true;
+    while (addMoreShows) {
+        // Display all cities and cinemas
+        std::cout << "\n--- Available Cities and Cinemas ---\n";
+        std::cout << std::left << std::setw(8) << "City ID"
+            << std::setw(20) << "City Name"
+            << std::setw(12) << "Cinema ID"
+            << std::setw(25) << "Cinema Name"
+            << std::setw(10) << "Hall ID"
+            << std::setw(15) << "Hall Name" << std::endl;
+        std::cout << std::string(90, '-') << std::endl;
+
+        soci::rowset<soci::row> locationData = (sql.prepare <<
+            "SELECT ci.id, ci.name, c.id, c.name, h.id, h.name "
+            "FROM \"City\" ci "
+            "JOIN \"Cinema\" c ON ci.id = c.\"cityId\" "
+            "JOIN \"Hall\" h ON c.id = h.\"cinemaId\" "
+            "ORDER BY ci.name, c.name, h.name");
+
+        std::vector<std::tuple<int, std::string, int, std::string, int, std::string>> locations;
+
+        for (const auto& row : locationData) {
+            int cityId = row.get<int>(0);
+            std::string cityName = row.get<std::string>(1);
+            int cinemaId = row.get<int>(2);
+            std::string cinemaName = row.get<std::string>(3);
+            int hallId = row.get<int>(4);
+            std::string hallName = row.get<std::string>(5);
+
+            locations.emplace_back(cityId, cityName, cinemaId, cinemaName, hallId, hallName);
+
+            std::cout << std::left << std::setw(8) << cityId
+                << std::setw(20) << cityName
+                << std::setw(12) << cinemaId
+                << std::setw(25) << cinemaName
+                << std::setw(10) << hallId
+                << std::setw(15) << hallName << std::endl;
+        }
+
+        if (locations.empty()) {
+            std::cout << "No halls available. Please add cities, cinemas, and halls first.\n";
+            return;
+        }
+
+        std::cout << "\nEnter Hall ID for the show: ";
+        int selectedHallId;
+        std::cin >> selectedHallId;
+
+        // Verify hall exists and show details
+        bool hallFound = false;
+        for (const auto& location : locations) {
+            if (std::get<4>(location) == selectedHallId) {
+                std::cout << "\nSelected Location:\n";
+                std::cout << "City: " << std::get<1>(location) << "\n";
+                std::cout << "Cinema: " << std::get<3>(location) << "\n";
+                std::cout << "Hall: " << std::get<5>(location) << "\n";
+                hallFound = true;
+                break;
+            }
+        }
+
+        if (!hallFound) {
+            std::cout << "Invalid Hall ID. Please try again.\n";
+            continue;
+        }
+
+        std::cout << "\nConfirm this location? (y/n): ";
+        char confirmLocation;
+        std::cin >> confirmLocation;
+
+        if (confirmLocation != 'y' && confirmLocation != 'Y') {
+            std::cout << "Location selection cancelled.\n";
+            continue;
+        }
+
+        // Get show timing
+        std::cin.ignore(); // Clear input buffer
+        std::string startTime, endTime;
+        std::cout << "\nEnter start time (YYYY-MM-DD HH:MM:SS): ";
+        std::getline(std::cin, startTime);
+        std::cout << "Enter end time (YYYY-MM-DD HH:MM:SS): ";
+        std::getline(std::cin, endTime);
+
+        // Confirm show details
+        std::cout << "\n=== Show Details Confirmation ===\n";
+        std::cout << "Movie: " << movieTitle << " (ID: " << movieId << ")\n";
+        std::cout << "Hall ID: " << selectedHallId << "\n";
+        std::cout << "Start Time: " << startTime << "\n";
+        std::cout << "End Time: " << endTime << "\n";
+        std::cout << "\nConfirm adding this show? (y/n): ";
+
+        char confirmShow;
+        std::cin >> confirmShow;
+
+        if (confirmShow == 'y' || confirmShow == 'Y') {
+            try {
+                int showId;
+                sql << "INSERT INTO \"Show\" (\"movieId\", \"hallId\", \"startTime\", \"endTime\") "
+                    "VALUES (:mid, :hid, :start, :end) RETURNING id",
+                    soci::use(movieId), soci::use(selectedHallId),
+                    soci::use(startTime), soci::use(endTime),
+                    soci::into(showId);
+
+                std::cout << "\nShow added successfully! Show ID: " << showId << "\n";
+            }
+            catch (const std::exception& e) {
+                std::cerr << "Error adding show: " << e.what() << "\n";
+            }
+        }
+        else {
+            std::cout << "Show creation cancelled.\n";
+        }
+
+        std::cout << "\nAdd another show for this movie? (y/n): ";
+        char addAnother;
+        std::cin >> addAnother;
+        addMoreShows = (addAnother == 'y' || addAnother == 'Y');
+    }
+}
 
 void addShow(soci::session& sql, bool isAdmin) {
     if (!isAdmin) {
@@ -52,33 +187,204 @@ void addShow(soci::session& sql, bool isAdmin) {
         return;
     }
 
-    int movieId, hallId;
-    std::string startTime, endTime;
-
     std::cout << "\n=== Add New Show ===\n";
-    std::cout << "Enter Movie ID: ";
-    std::cin >> movieId;
-    std::cout << "Enter Hall ID: ";
-    std::cin >> hallId;
-    std::cin.ignore();
-    std::cout << "Enter start time (YYYY-MM-DD HH:MM:SS): ";
+
+    // First, display all available movies
+    std::cout << "\n--- Available Movies ---\n";
+    std::cout << std::left << std::setw(5) << "ID"
+        << std::setw(35) << "Title"
+        << std::setw(12) << "Genre"
+        << std::setw(12) << "Language"
+        << std::setw(15) << "Release Date" << std::endl;
+    std::cout << std::string(79, '-') << std::endl;
+
+    soci::rowset<soci::row> movieData = (sql.prepare <<
+        "SELECT id, title, genre, language, \"releaseDate\" FROM \"Movie\" ORDER BY title");
+
+    std::vector<std::tuple<int, std::string, std::string, std::string, std::string>> movies;
+
+    for (const auto& row : movieData) {
+        int movieId = row.get<int>(0);
+        std::string title = row.get<std::string>(1);
+        std::string genre = row.get<std::string>(2);
+        std::string language = row.get<std::string>(3);
+        std::string releaseDate = row.get<std::string>(4);
+
+        movies.emplace_back(movieId, title, genre, language, releaseDate);
+
+        // Truncate long titles for display
+        std::string displayTitle = title.length() > 33 ? title.substr(0, 33) + ".." : title;
+
+        std::cout << std::left << std::setw(5) << movieId
+            << std::setw(35) << displayTitle
+            << std::setw(12) << genre
+            << std::setw(12) << language
+            << std::setw(15) << releaseDate << std::endl;
+    }
+
+    if (movies.empty()) {
+        std::cout << "No movies available. Please add movies first.\n";
+        return;
+    }
+
+    std::cout << "\nEnter Movie ID: ";
+    int selectedMovieId;
+    std::cin >> selectedMovieId;
+
+    // Verify movie exists and show details
+    bool movieFound = false;
+    std::string selectedMovieTitle;
+    for (const auto& movie : movies) {
+        if (std::get<0>(movie) == selectedMovieId) {
+            selectedMovieTitle = std::get<1>(movie);
+            std::cout << "\nSelected Movie:\n";
+            std::cout << "Title: " << std::get<1>(movie) << "\n";
+            std::cout << "Genre: " << std::get<2>(movie) << "\n";
+            std::cout << "Language: " << std::get<3>(movie) << "\n";
+            std::cout << "Release Date: " << std::get<4>(movie) << "\n";
+            movieFound = true;
+            break;
+        }
+    }
+
+    if (!movieFound) {
+        std::cout << "Invalid Movie ID.\n";
+        return;
+    }
+
+    std::cout << "\nConfirm this movie? (y/n): ";
+    char confirmMovie;
+    std::cin >> confirmMovie;
+
+    if (confirmMovie != 'y' && confirmMovie != 'Y') {
+        std::cout << "Movie selection cancelled.\n";
+        return;
+    }
+
+    // Now display all cities, cinemas, and halls
+    std::cout << "\n--- Available Cities, Cinemas, and Halls ---\n";
+    std::cout << std::left << std::setw(8) << "City ID"
+        << std::setw(20) << "City Name"
+        << std::setw(12) << "Cinema ID"
+        << std::setw(25) << "Cinema Name"
+        << std::setw(10) << "Hall ID"
+        << std::setw(15) << "Hall Name" << std::endl;
+    std::cout << std::string(90, '-') << std::endl;
+
+    soci::rowset<soci::row> locationData = (sql.prepare <<
+        "SELECT ci.id, ci.name, c.id, c.name, h.id, h.name "
+        "FROM \"City\" ci "
+        "JOIN \"Cinema\" c ON ci.id = c.\"cityId\" "
+        "JOIN \"Hall\" h ON c.id = h.\"cinemaId\" "
+        "ORDER BY ci.name, c.name, h.name");
+
+    std::vector<std::tuple<int, std::string, int, std::string, int, std::string>> locations;
+
+    for (const auto& row : locationData) {
+        int cityId = row.get<int>(0);
+        std::string cityName = row.get<std::string>(1);
+        int cinemaId = row.get<int>(2);
+        std::string cinemaName = row.get<std::string>(3);
+        int hallId = row.get<int>(4);
+        std::string hallName = row.get<std::string>(5);
+
+        locations.emplace_back(cityId, cityName, cinemaId, cinemaName, hallId, hallName);
+
+        std::cout << std::left << std::setw(8) << cityId
+            << std::setw(20) << cityName
+            << std::setw(12) << cinemaId
+            << std::setw(25) << cinemaName
+            << std::setw(10) << hallId
+            << std::setw(15) << hallName << std::endl;
+    }
+
+    if (locations.empty()) {
+        std::cout << "No halls available. Please add cities, cinemas, and halls first.\n";
+        return;
+    }
+
+    std::cout << "\nEnter Hall ID for the show: ";
+    int selectedHallId;
+    std::cin >> selectedHallId;
+
+    // Verify hall exists and show details
+    bool hallFound = false;
+    for (const auto& location : locations) {
+        if (std::get<4>(location) == selectedHallId) {
+            std::cout << "\nSelected Location:\n";
+            std::cout << "City: " << std::get<1>(location) << "\n";
+            std::cout << "Cinema: " << std::get<3>(location) << "\n";
+            std::cout << "Hall: " << std::get<5>(location) << "\n";
+            hallFound = true;
+            break;
+        }
+    }
+
+    if (!hallFound) {
+        std::cout << "Invalid Hall ID.\n";
+        return;
+    }
+
+    std::cout << "\nConfirm this location? (y/n): ";
+    char confirmLocation;
+    std::cin >> confirmLocation;
+
+    if (confirmLocation != 'y' && confirmLocation != 'Y') {
+        std::cout << "Location selection cancelled.\n";
+        return;
+    }
+
+    // Get show timing
+    std::cin.ignore(); // Clear input buffer
+    std::string startTime, endTime;
+    std::cout << "\nEnter start time (YYYY-MM-DD HH:MM:SS): ";
     std::getline(std::cin, startTime);
     std::cout << "Enter end time (YYYY-MM-DD HH:MM:SS): ";
     std::getline(std::cin, endTime);
 
-    try {
-        int showId;
-        sql << "INSERT INTO \"Show\" (\"movieId\", \"hallId\", \"startTime\", \"endTime\") "
-            "VALUES (:mid, :hid, :start, :end) RETURNING id",
-            soci::use(movieId), soci::use(hallId),
-            soci::use(startTime), soci::use(endTime),
-            soci::into(showId);
+    // Final confirmation
+    std::cout << "\n=== Final Show Details Confirmation ===\n";
+    std::cout << "Movie: " << selectedMovieTitle << " (ID: " << selectedMovieId << ")\n";
+    std::cout << "Hall ID: " << selectedHallId << "\n";
+    std::cout << "Start Time: " << startTime << "\n";
+    std::cout << "End Time: " << endTime << "\n";
+    std::cout << "\nConfirm adding this show? (y/n): ";
 
-        std::cout << "\nShow added successfully! Show ID: " << showId << "\n";
+    char finalConfirm;
+    std::cin >> finalConfirm;
+
+    if (finalConfirm == 'y' || finalConfirm == 'Y') {
+        try {
+            int showId;
+            sql << "INSERT INTO \"Show\" (\"movieId\", \"hallId\", \"startTime\", \"endTime\") "
+                "VALUES (:mid, :hid, :start, :end) RETURNING id",
+                soci::use(selectedMovieId), soci::use(selectedHallId),
+                soci::use(startTime), soci::use(endTime),
+                soci::into(showId);
+
+            std::cout << "\nShow added successfully! Show ID: " << showId << "\n";
+
+            // Ask if user wants to add another show
+            std::cout << "\nAdd another show? (y/n): ";
+            char addAnother;
+            std::cin >> addAnother;
+
+            if (addAnother == 'y' || addAnother == 'Y') {
+                addShow(sql, true); // Recursive call for another show
+                return;
+            }
+        }
+        catch (const std::exception& e) {
+            std::cerr << "Error adding show: " << e.what() << "\n";
+        }
     }
-    catch (const std::exception& e) {
-        std::cerr << "Error adding show: " << e.what() << "\n";
+    else {
+        std::cout << "Show creation cancelled.\n";
     }
+
+    std::cout << "\nPress Enter to continue...";
+    std::cin.ignore();
+    std::cin.get();
 }
 
 
@@ -126,24 +432,32 @@ void viewStatistics(soci::session& sql, bool isAdmin) {
 
         for (const auto& row : movieStats) {
             try {
+                // Use safer casting with explicit type handling
                 int movieId = 0;
+                std::string title = "N/A";
+                std::string genre = "N/A";
+                long long bookings = 0; // Use long long for COUNT results
+
+                // Get movieId
                 if (row.get_indicator(0) != soci::i_null) {
                     movieId = row.get<int>(0);
                 }
 
-                std::string title = "N/A";
+                // Get title
                 if (row.get_indicator(1) != soci::i_null) {
                     title = row.get<std::string>(1);
+                    if (title.length() > 28) title = title.substr(0, 28) + "..";
                 }
 
-                std::string genre = "N/A";
+                // Get genre
                 if (row.get_indicator(2) != soci::i_null) {
                     genre = row.get<std::string>(2);
+                    if (genre.length() > 10) genre = genre.substr(0, 10) + "..";
                 }
 
-                int bookings = 0;
+                // Get booking count - this is often returned as long long from COUNT()
                 if (row.get_indicator(3) != soci::i_null) {
-                    bookings = row.get<int>(3);
+                    bookings = row.get<long long>(3);
                 }
 
                 std::cout << std::left << std::setw(5) << movieId
@@ -153,38 +467,52 @@ void viewStatistics(soci::session& sql, bool isAdmin) {
             }
             catch (const std::exception& rowError) {
                 std::cerr << "Error processing movie row: " << rowError.what() << "\n";
+                // Try to get raw data for debugging
+                std::cerr << "Debug: Row has " << row.size() << " columns\n";
+                for (size_t i = 0; i < row.size(); ++i) {
+                    std::cerr << "Column " << i << " indicator: " << row.get_indicator(i) << "\n";
+                }
             }
         }
 
-        // Seat types with booking counts
+        // Seat types with booking counts - Fixed enum handling
         std::cout << "\n--- Seat Types and Their Booking Counts ---\n";
         std::cout << std::left << std::setw(15) << "Seat Type" << std::setw(10) << "Bookings\n";
         std::cout << std::string(25, '-') << "\n";
 
+        // Cast enum to text explicitly for PostgreSQL
         soci::rowset<soci::row> seatStats = (sql.prepare <<
-            "SELECT seat_types.type::text, COALESCE(booking_counts.booking_count, 0) "
-            "FROM ("
-            "    SELECT DISTINCT type::text AS type FROM \"Seat\""
-            ") seat_types "
-            "LEFT JOIN ("
-            "    SELECT s.type::text AS type, COUNT(b.id) AS booking_count "
-            "    FROM \"Seat\" s "
-            "    JOIN \"Booking\" b ON s.id = b.\"seatId\" "
-            "    WHERE b.status = 'CONFIRMED' "
-            "    GROUP BY s.type"
-            ") booking_counts ON seat_types.type = booking_counts.type "
+            "SELECT s.type::text AS seat_type, "
+            "       COALESCE(COUNT(b.id), 0) AS booking_count "
+            "FROM \"Seat\" s "
+            "LEFT JOIN \"Booking\" b ON s.id = b.\"seatId\" AND b.status = 'CONFIRMED' "
+            "GROUP BY s.type "
             "ORDER BY booking_count DESC");
 
         for (const auto& row : seatStats) {
             try {
-                std::string seatType = (row.get_indicator(0) != soci::i_null) ? row.get<std::string>(0) : "N/A";
-                int bookings = row.get<int>(1);
+                std::string seatType = "N/A";
+                long long bookings = 0;
+
+                // Get seat type as string (now explicitly cast to text)
+                if (row.get_indicator(0) != soci::i_null) {
+                    seatType = row.get<std::string>(0);
+                }
+
+                if (row.get_indicator(1) != soci::i_null) {
+                    bookings = row.get<long long>(1);
+                }
 
                 std::cout << std::left << std::setw(15) << seatType
                     << std::setw(10) << bookings << "\n";
             }
             catch (const std::exception& rowError) {
                 std::cerr << "Error processing seat row: " << rowError.what() << "\n";
+                // Debug information
+                std::cerr << "Debug: Row has " << row.size() << " columns\n";
+                for (size_t i = 0; i < row.size(); ++i) {
+                    std::cerr << "Column " << i << " indicator: " << row.get_indicator(i) << "\n";
+                }
             }
         }
 
@@ -211,10 +539,28 @@ void viewStatistics(soci::session& sql, bool isAdmin) {
 
         for (const auto& row : cinemaStats) {
             try {
-                int cinemaId = row.get<int>(0);
-                std::string cinemaName = (row.get_indicator(1) != soci::i_null) ? row.get<std::string>(1) : "N/A";
-                std::string cityName = (row.get_indicator(2) != soci::i_null) ? row.get<std::string>(2) : "N/A";
-                int bookings = row.get<int>(3);
+                int cinemaId = 0;
+                std::string cinemaName = "N/A";
+                std::string cityName = "N/A";
+                long long bookings = 0;
+
+                if (row.get_indicator(0) != soci::i_null) {
+                    cinemaId = row.get<int>(0);
+                }
+
+                if (row.get_indicator(1) != soci::i_null) {
+                    cinemaName = row.get<std::string>(1);
+                    if (cinemaName.length() > 18) cinemaName = cinemaName.substr(0, 18) + "..";
+                }
+
+                if (row.get_indicator(2) != soci::i_null) {
+                    cityName = row.get<std::string>(2);
+                    if (cityName.length() > 13) cityName = cityName.substr(0, 13) + "..";
+                }
+
+                if (row.get_indicator(3) != soci::i_null) {
+                    bookings = row.get<long long>(3);
+                }
 
                 std::cout << std::left << std::setw(5) << cinemaId
                     << std::setw(20) << cinemaName
@@ -223,6 +569,11 @@ void viewStatistics(soci::session& sql, bool isAdmin) {
             }
             catch (const std::exception& rowError) {
                 std::cerr << "Error processing cinema row: " << rowError.what() << "\n";
+                // Debug information
+                std::cerr << "Debug: Row has " << row.size() << " columns\n";
+                for (size_t i = 0; i < row.size(); ++i) {
+                    std::cerr << "Column " << i << " indicator: " << row.get_indicator(i) << "\n";
+                }
             }
         }
 

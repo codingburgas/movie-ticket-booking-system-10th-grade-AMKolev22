@@ -260,7 +260,7 @@ private:
     bool submitted = false;
     void draw() {
         system("cls");
-        std::cout << "===== REGISTER FORM =====\n\n";
+        std::cout << "===== AUTH FORM =====\n\n";
 
         for (int i = 0; i < fields.size(); ++i) {
             if (i == selected) SetColor(240);

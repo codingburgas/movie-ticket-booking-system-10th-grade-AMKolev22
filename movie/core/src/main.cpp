@@ -91,11 +91,95 @@ int main() {
                 std::cout << "You selected: " << menus["login"][choice] << "\n";
 
                 if (choice == 0) {
-                    fs::create_directory("data/");
-                    std::ofstream file("data/session.json");
-                    std::cout << "Login!";
+                    std::cout << "Login";
+                    CliUtils::clearScreen();
+                    form.addField("Email");
+                    nlohmann::json data;
+
+                    if (!form.run()) {
+                        std::cout << "Email input cancelled.\n";
+                        return 1;
+                    }
+
+                    email = form.getFieldValue("Email");
+                    data["email"] = email;
+
+                    try {
+                        soci::session* sql = db->getSession();
+                        std::string name;
+                        *sql << "SELECT name FROM public.\"User\" WHERE email = :email",
+                            soci::into(name),
+                            soci::use(email);
+
+                        data["name"] = name;
+                    }
+                    catch (const std::exception& e) {
+                        std::cerr << "Error retrieving user name: " << e.what() << "\n";
+                        return 1;
+                    }
+
+                    SMTP::sendCode(email);
+                    form.clearFields();
+
+                    std::cout << std::format("A code was sent to {}\n", email);
+                    form.addField("Code");
+
+                    if (!form.run()) {
+                        std::cout << "Code input cancelled.\n";
+                        return 1;
+                    }
+
+                    std::string enteredCodeStr = form.getFieldValue("Code");
+                    int enteredCode = 0;
+                    try {
+                        enteredCode = std::stoi(enteredCodeStr);
+                    }
+                    catch (...) {
+                        std::cout << "Invalid code format or code\n";
+                        return 1;
+                    }
+
+                    try {
+                        int storedCode = 0;
+                        soci::session* sql = db->getSession();
+                        *sql << "SELECT code FROM \"TwoFA\" WHERE \"userEmail\" = :email",
+                            soci::into(storedCode),
+                            soci::use(email);
+
+                        if (storedCode == enteredCode) {
+                            int isAdmin = 1;
+                            std::cout << std::format("Login successful! Welcome,  {}\n", email);
+                            fs::create_directory("data/");
+
+                            std::cout << "Writing session data: " << data.dump(4) << "\n";
+
+                            std::ofstream file("data/session.json");
+                            if (!file) {
+                                std::cerr << "Failed to open session.json for writing.\n";
+                                return 1;
+                            }
+                            file << data;
+
+                            *sql << "DELETE FROM \"TwoFA\" WHERE \"userEmail\" = :email",
+                                soci::use(email);
+
+                            CliUtils::clearScreen();
+                            CliUtils::displayMenu(bool(isAdmin), *sql);
+                        }
+                        else {
+                            std::cout << "Code does not match.\n";
+                        }
+                    }
+                    catch (const std::exception& e) {
+                        std::cerr << "DB error: " << e.what() << "\n";
+                    }
+
+                    CliUtils::clearScreen();
                 }
+
+
                 else {
+
                     std::cout << "Register";
                     CliUtils::clearScreen();
                     form.addField("Name");
