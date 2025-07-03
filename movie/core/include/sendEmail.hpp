@@ -121,4 +121,48 @@ namespace SMTP {
 
         //return std::expected<void, std::string>{};
     }
+
+    void sendReceipt(std::string email, int bookingId, std::string seatType) {
+        CURL* curl = curl_easy_init();
+
+        upload_status uploadCtx;
+        uploadCtx.recipient_email = email;
+        uploadCtx.lines.push_back("MIME-Version: 1.0\r\n");
+        uploadCtx.lines.push_back("Content-Type: text/plain; charset=utf-8\r\n");
+        uploadCtx.lines.push_back(std::format("Date: {}\r\n", getCurrentDate()));
+        uploadCtx.lines.push_back(std::format("To: <{}>\r\n", email));
+        uploadCtx.lines.push_back("From: <amkolev22@codingburgas.bg>\r\n");
+        uploadCtx.lines.push_back("Subject: Booking Receipt\r\n");
+        uploadCtx.lines.push_back("\r\n");
+        uploadCtx.lines.push_back("Thank you for your booking! Show this email when you're entering.\r\n");
+        uploadCtx.lines.push_back(".\r\n");
+        uploadCtx.lines.push_back(std::format("Booking id: {}\r\n", bookingId));
+        uploadCtx.lines.push_back(".\r\n");
+        uploadCtx.lines.push_back(std::format("Seat Type: {}\r\n", seatType));
+        uploadCtx.lines.push_back(".\r\n");
+        uploadCtx.lines.push_back("Enjoy your show! Come again!\r\n");
+        uploadCtx.lines.push_back(".\r\n");
+
+        curl_easy_setopt(curl, CURLOPT_URL, "smtp://mail.smtp2go.com:587");
+        curl_easy_setopt(curl, CURLOPT_MAIL_AUTH, "amkolev22@codingburgas.bg");
+        curl_easy_setopt(curl, CURLOPT_USERNAME, "admin_movie");
+        curl_easy_setopt(curl, CURLOPT_PASSWORD, "WacALj9l1CbKN0CH");
+        curl_easy_setopt(curl, CURLOPT_MAIL_FROM, "<amkolev22@codingburgas.bg>");
+        curl_easy_setopt(curl, CURLOPT_SSL_VERIFYPEER, 0L);
+        curl_easy_setopt(curl, CURLOPT_SSL_VERIFYHOST, 0L);
+
+        struct curl_slist* recipients = nullptr;
+        recipients = curl_slist_append(recipients, std::format("<{}>", email).c_str());
+        curl_easy_setopt(curl, CURLOPT_MAIL_RCPT, recipients);
+
+        curl_easy_setopt(curl, CURLOPT_READFUNCTION, payload_source);
+        curl_easy_setopt(curl, CURLOPT_READDATA, &uploadCtx);
+        curl_easy_setopt(curl, CURLOPT_UPLOAD, 1L);
+        curl_easy_setopt(curl, CURLOPT_VERBOSE, 0L);
+
+        CURLcode res = curl_easy_perform(curl);
+
+        curl_slist_free_all(recipients);
+        curl_easy_cleanup(curl);
+    }
 }

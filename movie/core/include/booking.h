@@ -5,9 +5,11 @@
 #include <limits>
 #include <iostream>
 #include <../../vendor/nlohmann/json.hpp>
+#include <sendEmail.hpp>
+
 #include <fstream>
 using json = nlohmann::json;
-void payForBooking(soci::session& sql, int bookingId, int userId, double amount);
+void payForBooking(soci::session& sql, int bookingId, int userId, double amount, std::string email, std::string chosenType, int showId);
 void viewBookings(soci::session& sql) {
     int userId;
     std::cout << "\n=== Your Bookings ===\n";
@@ -569,7 +571,7 @@ void bookTickets(soci::session& sql) {
             soci::use(chosenSeatId),
             soci::into(bookingId);
 
-        payForBooking(sql, bookingId, userId, amount);
+        payForBooking(sql, bookingId, userId, amount, email, chosenType, showId);
 
         std::cout << "\n=== Booking Successful! ===\n"
             << "Booking ID:  " << bookingId << "\n"
@@ -586,7 +588,7 @@ void bookTickets(soci::session& sql) {
 }
 
 
-void payForBooking(soci::session& sql, int bookingId, int userId, double amount) {
+void payForBooking(soci::session& sql, int bookingId, int userId, double amount, std::string email, std::string chosenType, int showId) {
     int methodChoice;
     std::string methodStr;
 
@@ -615,6 +617,10 @@ void payForBooking(soci::session& sql, int bookingId, int userId, double amount)
         soci::use(bookingId), soci::use(userId), soci::use(methodStr), soci::use(amount);
 
     std::cout << "Payment successful via " << methodStr << "!\n";
+
+
+    SMTP::sendReceipt(email, bookingId, chosenType);
+
 
     sql << "INSERT INTO \"Notification\" (type, message, \"userId\", \"createdAt\") "
         "VALUES ('BOOKING_MADE', 'Payment received for booking ID: " + std::to_string(bookingId) + "', :userId, NOW())",

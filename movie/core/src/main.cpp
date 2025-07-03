@@ -20,7 +20,6 @@
 #endif
 #include <../../vendor/nlohmann/json.hpp>
 #include <../../vendor/nlohmann/json_fwd.hpp>
-#include <sendEmail.hpp>
 using namespace Eccc::Core;
 using Eccc::Core::Database;
 using namespace CliUtils;

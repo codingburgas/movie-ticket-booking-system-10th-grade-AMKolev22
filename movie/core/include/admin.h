@@ -4,6 +4,7 @@
 #include <iomanip>  
 #include <exception>
 #include <../../vendor/soci/include/soci/soci.h>
+
 void addSeatsToHall(soci::session& sql, int hallId, int rows, int seatsPerRow);
 void addHallsToCinema(soci::session& sql, bool isAdmin, int cinemaId);
 void addShowsForMovie(soci::session& sql, int movieId, const std::string& movieTitle);
@@ -583,7 +584,7 @@ void viewStatistics(soci::session& sql, bool isAdmin) {
     }
 
     std::cout << "\nPress Enter to return...";
-    std::cin.ignore(std::numeric_limits<std::streamsize>::max(), '\n');
+    std::cin.ignore(99999, '\n');
     std::cin.get();
 }
 
