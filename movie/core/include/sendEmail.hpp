@@ -19,10 +19,9 @@ struct upload_status {
     int lines_read = 0;
     std::string code;
     std::string recipient_email;
-    std::vector<std::string> lines;  // Store email content here
+    std::vector<std::string> lines; 
 };
 
-// Helper to get current date in RFC 2822 format, e.g. "Mon, 29 Jun 2025 21:54:29 +0000"
 std::string getCurrentDate() {
     using namespace std::chrono;
     auto now = system_clock::now();
@@ -60,7 +59,6 @@ namespace SMTP {
 
     void sendCode(std::string email) {
         std::cout << email << std::endl;
-        // Get DB handle (optional)
         auto dbHandle = Eccc::Core::Database::getInstance().get();
         auto db = dbHandle.value();
         auto sql = db->getSession();
